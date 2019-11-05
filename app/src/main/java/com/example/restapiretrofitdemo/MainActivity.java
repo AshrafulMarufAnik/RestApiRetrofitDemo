@@ -11,6 +11,7 @@ import android.content.IntentFilter;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -38,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     private DatabaseHelper databaseHelper = new DatabaseHelper(this);
     private final String GET_TAG = "API GET";
     private final String POST_TAG = "API POST";
+    private final int RETRY_TIMEOUT = 1000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,18 +47,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         init();
+        retryHandler();
         //getDataFromApi();
         //showDataFromLocalDB();
-
-        boolean activeNetwork = isConnectedToNetwork();
-
-        if(activeNetwork){
-            getDataFromApi();
-        }
-        else {
-            swipeRefreshLayout.setRefreshing(true);
-            showDataFromLocalDB();
-        }
 
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
@@ -85,6 +78,23 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    private void retryHandler() {
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                boolean activeNetwork = isConnectedToNetwork();
+
+                if(activeNetwork){
+                    getDataFromApi();
+                }
+                else {
+                    swipeRefreshLayout.setRefreshing(true);
+                    showDataFromLocalDB();
+                }
+            }
+        },RETRY_TIMEOUT);
     }
 
     private void showDataFromLocalDB() {
