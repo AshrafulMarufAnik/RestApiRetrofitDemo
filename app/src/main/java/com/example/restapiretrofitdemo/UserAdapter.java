@@ -30,19 +30,24 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
 
         User user = users.get(position);
 
-        String listStatus = user.getStatus();
-
         holder.userId.setText(String.valueOf(user.getUserId()));
         holder.name.setText(String.valueOf(user.getName()));
         holder.title.setText(user.getTitle());
         holder.body.setText(user.getBody());
-        holder.listStatusIV.setImageResource(R.drawable.ic_block_black_24dp);
-        holder.listStatusTV.setText("Not Synced");
+        holder.listStatusTV.setText(user.getStatus());
 
-        /*
-        if(listStatus == "Not Synced"){
+        String listStatus = user.getStatus();
 
+        if(listStatus.equals("Synced")){
+            holder.listStatusIV.setImageResource(R.drawable.ic_check_circle_black_24dp);
+            holder.listStatusIV.setColorFilter(R.color.colorPrimary);
         }
+        else {
+            holder.listStatusIV.setImageResource(R.drawable.ic_block_black_24dp);
+        }
+
+
+        /*}
         else if(listStatus == "Synced"){
             holder.userId.setText(String.valueOf(user.getUserId()));
             holder.name.setText(String.valueOf(user.getName()));
@@ -50,10 +55,7 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
             holder.body.setText(String.valueOf(user.getBody()));
             holder.listStatusTV.setText("Synced");
             holder.listStatusIV.setImageResource(R.drawable.ic_check_circle_black_24dp);
-        }
-
-        */
-
+        }*/
     }
 
     @Override

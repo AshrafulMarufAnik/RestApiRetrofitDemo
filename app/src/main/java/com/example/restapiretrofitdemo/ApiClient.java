@@ -12,7 +12,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.http.Url;
 
 public class ApiClient {
-    private static String BASE_URL="http://localhost:8080/api/user/";
+    //private static String BASE_URL="http://localhost/api/user/";
+    private static String BASE_URL="http://192.168.11.216/api/users/";
     private static ApiClient mInstance;
     private Retrofit retrofit;
 

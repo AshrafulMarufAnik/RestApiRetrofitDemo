@@ -23,5 +23,4 @@ public interface RetrofitInterface {
             @Field("status") String status
     );
 
-
 }

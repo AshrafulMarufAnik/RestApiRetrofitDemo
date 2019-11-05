@@ -19,6 +19,18 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.gson.JsonArray;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,13 +40,14 @@ import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
     private Button submitBTN;
+    private FloatingActionButton FABtnVolleyParse;
     private EditText userIdET, nameET, titleET, bodyET;
     private SwipeRefreshLayout swipeRefreshLayout;
     private RecyclerView recyclerView;
     private UserAdapter adapter;
     private List<User> users;
     private RetrofitInterface retrofitInterface;
-    private ProgressBar progressBar;
+    private RequestQueue requestQueue;
     private NetworkCheck networkCheck = new NetworkCheck();
     private DatabaseHelper databaseHelper = new DatabaseHelper(this);
     private final String GET_TAG = "API GET";
@@ -47,14 +60,33 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         init();
-        retryHandler();
+        //retryHandler();
         //getDataFromApi();
         //showDataFromLocalDB();
+        requestQueue = Volley.newRequestQueue(this);
+        final boolean activeNetwork = isConnectedToNetwork();
+
+        if(activeNetwork){
+            jsonParseUsingVolley();
+        }
+        else {
+            swipeRefreshLayout.setRefreshing(true);
+            showDataFromLocalDB();
+        }
+
+        FABtnVolleyParse.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                jsonParseUsingVolley();
+            }
+        });
+
 
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                showDataFromLocalDB();
+                jsonParseUsingVolley();
+
             }
         });
 
@@ -76,8 +108,57 @@ public class MainActivity extends AppCompatActivity {
                 else {
                     Toast.makeText(MainActivity.this, "Fill up all inputs", Toast.LENGTH_SHORT).show();
                 }
+
+                userIdET.getText().clear();
+                nameET.getText().clear();
+                titleET.getText().clear();
+                bodyET.getText().clear();
             }
         });
+    }
+
+    private void jsonParseUsingVolley() {
+        users.clear();
+        String BASE_URL = "http://192.168.0.107:80/api/user/read.php";
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, BASE_URL, null, new com.android.volley.Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+
+                    try {
+                        JSONArray jsonArray = response.getJSONArray("users");
+
+                        for(int i=0; i<jsonArray.length();i++){
+                            JSONObject jsonObject = jsonArray.getJSONObject(i);
+
+                            String userId = jsonObject.getString("userId");
+                            String name = jsonObject.getString("name");
+                            String title = jsonObject.getString("title");
+                            String body = jsonObject.getString("body");
+                            String status = jsonObject.getString("status");
+
+                            User user = new User(userId,name,title,body,status);
+                            users.add(user);
+                        }
+                        adapter = new UserAdapter(users);
+                        recyclerView.setAdapter(adapter);
+                        adapter.notifyDataSetChanged();
+                        swipeRefreshLayout.setRefreshing(false);
+                    }
+                    catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+            }
+        }, new com.android.volley.Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Toast.makeText(MainActivity.this, "Error: "+error.getMessage(), Toast.LENGTH_LONG).show();
+                error.printStackTrace();
+            }
+        });
+
+        requestQueue.add(jsonObjectRequest);
     }
 
     private void retryHandler() {
@@ -87,11 +168,11 @@ public class MainActivity extends AppCompatActivity {
                 boolean activeNetwork = isConnectedToNetwork();
 
                 if(activeNetwork){
-                    getDataFromApi();
+                    //getDataFromApi();
                 }
                 else {
-                    swipeRefreshLayout.setRefreshing(true);
-                    showDataFromLocalDB();
+                    //swipeRefreshLayout.setRefreshing(true);
+                    //showDataFromLocalDB();
                 }
             }
         },RETRY_TIMEOUT);
@@ -133,6 +214,7 @@ public class MainActivity extends AppCompatActivity {
             public void onResponse(Call<List<User>> call, Response<List<User>> response) {
                 if(response.body()!=null){
                     users = response.body();
+
                     //progressBar.setVisibility(View.GONE);
                     //adapter = new UserAdapter(users);
                     //recyclerView.setAdapter(adapter);
@@ -143,6 +225,7 @@ public class MainActivity extends AppCompatActivity {
                     for(int i=0;i<listSize;i++){
                         User currentUser = users.get(i);
                         databaseHelper.insertDataIntoTable2(currentUser.getUserId(),currentUser.getName(),currentUser.getTitle(),currentUser.getBody(),currentUser.getStatus());
+
                     }
                 }
                 else {
@@ -167,24 +250,13 @@ public class MainActivity extends AppCompatActivity {
         IntentFilter intentFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
         registerReceiver(networkCheck,intentFilter);
 
-        //Intent intent = new Intent(MainActivity.this,AppService.class);
-        //startService(intent);
+        Intent intent = new Intent(MainActivity.this,AppService.class);
+        startService(intent);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
-        boolean activeNetwork = isConnectedToNetwork();
-
-        if(activeNetwork){
-            getDataFromApi();
-        }
-        else {
-            swipeRefreshLayout.setRefreshing(true);
-            showDataFromLocalDB();
-        }
-
     }
 
     @Override
@@ -193,11 +265,12 @@ public class MainActivity extends AppCompatActivity {
 
         unregisterReceiver(networkCheck);
 
-        //Intent intent = new Intent(MainActivity.this,AppService.class);
-        //stopService(intent);
+        Intent intent = new Intent(MainActivity.this,AppService.class);
+        stopService(intent);
     }
 
     private void init() {
+        FABtnVolleyParse = findViewById(R.id.FABtn2);
         submitBTN = findViewById(R.id.SubmitBTN);
         userIdET = findViewById(R.id.inputUserIdET);
         nameET = findViewById(R.id.inputNameET);
