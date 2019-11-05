@@ -62,34 +62,38 @@ public class AppService extends Service {
 
         @Override
         protected Void doInBackground(Void... voids) {
+            boolean activeNetwork = isConnectedToNetwork();
 
-            final Cursor cursor = databaseHelper.showUnSyncedData();
+            if(activeNetwork)
+            {
+                final Cursor cursor = databaseHelper.showUnSyncedData();
+                while (cursor.moveToNext()){
+                    String id = cursor.getString(cursor.getColumnIndex(databaseHelper.COL_userId));
+                    String name = cursor.getString(cursor.getColumnIndex(databaseHelper.COL_name));
+                    String title = cursor.getString(cursor.getColumnIndex(databaseHelper.COL_title));
+                    String body = cursor.getString(cursor.getColumnIndex(databaseHelper.COL_body));
+                    String status = "Synced";
 
-            while (cursor.moveToNext()){
-                String id = String.valueOf(cursor.getColumnIndex(databaseHelper.COL_userId));
-                String name = String.valueOf(cursor.getColumnIndex(databaseHelper.COL_name));
-                String title = String.valueOf(cursor.getColumnIndex(databaseHelper.COL_title));
-                String body = String.valueOf(cursor.getColumnIndex(databaseHelper.COL_body));
+                    retrofitInterface = new ApiClient().getInstance().getApi();
 
-                retrofitInterface = new ApiClient().getInstance().getApi();
-
-                Call<List<User>> call = retrofitInterface.postData(id,name,title,body,"Synced");
-                call.enqueue(new Callback<List<User>>() {
-                    @Override
-                    public void onResponse(Call<List<User>> call, Response<List<User>> response) {
-                        if(response.isSuccessful()){
-                            Toast.makeText(AppService.this, "Data Synced", Toast.LENGTH_SHORT).show();
+                    Call<List<User>> call = retrofitInterface.postData(id,name,title,body,status);
+                    call.enqueue(new Callback<List<User>>() {
+                        @Override
+                        public void onResponse(Call<List<User>> call, Response<List<User>> response) {
+                            if(response.isSuccessful()){
+                                Toast.makeText(AppService.this, "Data Synced", Toast.LENGTH_SHORT).show();
+                            }
+                            else {
+                                Toast.makeText(AppService.this, "Data could not sync", Toast.LENGTH_SHORT).show();
+                            }
                         }
-                        else {
-                            Toast.makeText(AppService.this, "Data could not sync", Toast.LENGTH_SHORT).show();
-                        }
-                    }
 
-                    @Override
-                    public void onFailure(Call<List<User>> call, Throwable t) {
-                        Toast.makeText(AppService.this, "API POST Error", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                        @Override
+                        public void onFailure(Call<List<User>> call, Throwable t) {
+                            Toast.makeText(AppService.this, "API POST Error", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
             }
 
             return null;

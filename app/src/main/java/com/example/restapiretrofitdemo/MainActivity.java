@@ -3,6 +3,7 @@ package com.example.restapiretrofitdemo;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.content.Context;
 import android.content.Intent;
@@ -27,6 +28,7 @@ import retrofit2.Response;
 public class MainActivity extends AppCompatActivity {
     private Button submitBTN;
     private EditText userIdET, nameET, titleET, bodyET;
+    private SwipeRefreshLayout swipeRefreshLayout;
     private RecyclerView recyclerView;
     private UserAdapter adapter;
     private List<User> users;
@@ -43,7 +45,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         init();
-        //getData();
+        //getDataFromApi();
+        //showDataFromLocalDB();
+
+        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                showDataFromLocalDB();
+            }
+        });
 
         submitBTN.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -56,8 +66,9 @@ public class MainActivity extends AppCompatActivity {
                     String name = nameET.getText().toString();
                     String title = titleET.getText().toString();
                     String body = bodyET.getText().toString();
+                    String status = "Not Synced";
 
-                    storeDataIntoLocalDB(userId,name,title,body);
+                    storeDataIntoLocalDB(userId,name,title,body,status);
                 }
                 else {
                     Toast.makeText(MainActivity.this, "Fill up all inputs", Toast.LENGTH_SHORT).show();
@@ -66,12 +77,33 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void storeDataIntoLocalDB(String userId, String name, String title, String body) {
-        databaseHelper.insertDataIntoLocalDB(userId,name,title,body,"Not Synced");
+    private void showDataFromLocalDB() {
+        users.clear();
+        Cursor currentCursor = databaseHelper.showDataFromLocalDB();
+
+        while (currentCursor.moveToNext()){
+            String userId = currentCursor.getString(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_userId));
+            String name = currentCursor.getString(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_name));
+            String title = currentCursor.getString(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_title));
+            String body = currentCursor.getString(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_body));
+            String status = currentCursor.getString(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_status));
+
+            User currentUser = new User(userId,name,title,body,status);
+            users.add(currentUser);
+        }
+        adapter = new UserAdapter(users);
+        recyclerView.setAdapter(adapter);
+        adapter.notifyDataSetChanged();
+        swipeRefreshLayout.setRefreshing(false);
+    }
+
+    private void storeDataIntoLocalDB(String userId, String name, String title, String body, String status) {
+        databaseHelper.insertDataIntoLocalDB(userId,name,title,body,status);
+        Toast.makeText(this, "Data stored", Toast.LENGTH_SHORT).show();
     }
 
 
-    private void getData() {
+    private void getDataFromApi() {
         users.clear();
         retrofitInterface = new ApiClient().getInstance().getApi();
 
@@ -106,12 +138,6 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(GET_TAG,t.getMessage());
             }
         });
-
-    }
-
-    public void showData(){
-
-
     }
 
     @Override
@@ -132,56 +158,11 @@ public class MainActivity extends AppCompatActivity {
         boolean activeNetwork = isConnectedToNetwork();
 
         if(activeNetwork){
-            getData();
-
-            Cursor cursor1 =  databaseHelper.showUnSyncedData(); //returns all not-synced data from local db
-
-            while(cursor1.moveToNext()){
-                String userId = String.valueOf(cursor1.getColumnIndex(databaseHelper.COL_userId));
-                String name = String.valueOf(cursor1.getColumnIndex(databaseHelper.COL_name));
-                String title = String.valueOf(cursor1.getColumnIndex(databaseHelper.COL_title));
-                String body = String.valueOf(cursor1.getColumnIndex(databaseHelper.COL_body));
-                String status = String.valueOf(cursor1.getColumnIndex(databaseHelper.COL_status));
-
-                postDataToApi(userId,name,title,body,status);
-            }
+            getDataFromApi();
         }
         else {
-            Cursor currentCursor = databaseHelper.showALLDataTable2();
-
-            while (currentCursor.moveToNext()){
-                String userId = String.valueOf(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_userId));
-                String name = String.valueOf(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_name));
-                String title = String.valueOf(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_title));
-                String body = String.valueOf(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_body));
-                String status = String.valueOf(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_status));
-
-                User currentUser = new User(userId,name,title,body,status);
-                users.add(currentUser);
-            }
-            adapter.notifyDataSetChanged();
+            showDataFromLocalDB();
         }
-    }
-
-    private void postDataToApi(String userId, String name, String title, String body, String status) {
-        retrofitInterface = new ApiClient().getInstance().getApi();
-
-        Call<List<User>> call = retrofitInterface.postData(userId,name,title,body,"Synced");
-        call.enqueue(new Callback<List<User>>() {
-            @Override
-            public void onResponse(Call<List<User>> call, Response<List<User>> response) {
-                if(response.isSuccessful()){
-                    Toast.makeText(MainActivity.this, "Data Synced", Toast.LENGTH_SHORT).show();
-                    Log.d(POST_TAG, "API POST Success");
-                }
-            }
-
-            @Override
-            public void onFailure(Call<List<User>> call, Throwable t) {
-                Toast.makeText(MainActivity.this, "", Toast.LENGTH_SHORT).show();
-                Log.d(POST_TAG,"API POST unsuccessful");
-            }
-        });
     }
 
     @Override
@@ -195,23 +176,26 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void init() {
-        recyclerView = findViewById(R.id.userRecyclearview);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        users = new ArrayList<>();
         submitBTN = findViewById(R.id.SubmitBTN);
         userIdET = findViewById(R.id.inputUserIdET);
         nameET = findViewById(R.id.inputNameET);
         titleET = findViewById(R.id.inputTitleET);
         bodyET = findViewById(R.id.inputBodyET);
+        swipeRefreshLayout = findViewById(R.id.swipeRef1);
+        recyclerView = findViewById(R.id.userRecyclearview);
 
-        adapter = new UserAdapter(users);
-        recyclerView.setAdapter(adapter);
-
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        users = new ArrayList<>();
     }
 
     private boolean isConnectedToNetwork(){
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 
         return connectivityManager.getActiveNetworkInfo() != null;
+    }
+
+    public void secondActivity(View view) {
+        Intent intent = new Intent(MainActivity.this,SecondActivity.class);
+        startActivity(intent);
     }
 }

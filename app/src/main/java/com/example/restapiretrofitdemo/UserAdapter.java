@@ -32,13 +32,16 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
 
         String listStatus = user.getStatus();
 
+        holder.userId.setText(String.valueOf(user.getUserId()));
+        holder.name.setText(String.valueOf(user.getName()));
+        holder.title.setText(user.getTitle());
+        holder.body.setText(user.getBody());
+        holder.listStatusIV.setImageResource(R.drawable.ic_block_black_24dp);
+        holder.listStatusTV.setText("Not Synced");
+
+        /*
         if(listStatus == "Not Synced"){
-            holder.userId.setText(String.valueOf(user.getUserId()));
-            holder.name.setText(String.valueOf(user.getName()));
-            holder.title.setText(user.getTitle());
-            holder.body.setText(user.getBody());
-            holder.listStatusIV.setImageResource(R.drawable.ic_block_black_24dp);
-            holder.listStatusTV.setText("Not Synced");
+
         }
         else if(listStatus == "Synced"){
             holder.userId.setText(String.valueOf(user.getUserId()));
@@ -48,6 +51,8 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.ViewHolder> {
             holder.listStatusTV.setText("Synced");
             holder.listStatusIV.setImageResource(R.drawable.ic_check_circle_black_24dp);
         }
+
+        */
 
     }
 
