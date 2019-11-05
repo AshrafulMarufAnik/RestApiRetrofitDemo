@@ -101,6 +101,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public void deleteSingleData(String id){
         SQLiteDatabase sqLiteDatabase = getWritableDatabase();
         sqLiteDatabase.delete(TABLE_NAME,"userId=?",new String[]{String.valueOf(id)});
+        sqLiteDatabase.close();
     }
 
 }

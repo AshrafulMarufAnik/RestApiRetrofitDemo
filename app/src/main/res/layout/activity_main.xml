@@ -17,55 +17,77 @@
         android:tint="#FFFFFF"
         android:layout_margin="10dp"/>
 
-    <LinearLayout
+    <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:id="@+id/inputL1"
-        android:layout_margin="10dp">
+        android:id="@+id/cv1"
+        android:background="#FFFFFF"
+        app:cardUseCompatPadding="true"
+        app:cardCornerRadius="3dp"
+        app:cardElevation="5dp">
 
-        <EditText
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="ID"
-            android:id="@+id/inputUserIdET"/>
+            android:orientation="vertical"
+            android:id="@+id/inputL1"
+            android:layout_margin="10dp">
 
-        <EditText
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Name"
-            android:id="@+id/inputNameET"/>
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="ID"
+                android:id="@+id/inputUserIdET"/>
 
-        <EditText
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Title"
-            android:id="@+id/inputTitleET"/>
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Name"
+                android:id="@+id/inputNameET"/>
 
-        <EditText
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Body"
-            android:id="@+id/inputBodyET"/>
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Title"
+                android:id="@+id/inputTitleET"/>
 
-        <Button
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/SubmitBTN"
-            android:text="Submit"
-            android:textAllCaps="false"
-            android:layout_margin="5dp"
-            android:textColor="#000000"
-            android:layout_marginLeft="40dp"
-            android:layout_marginRight="40dp"/>
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Body"
+                android:id="@+id/inputBodyET"/>
 
-    </LinearLayout>
+            <Button
+                android:layout_width="140dp"
+                android:layout_height="38dp"
+                android:id="@+id/SubmitBTN"
+                android:text="Submit"
+                android:textAlignment="center"
+                android:layout_gravity="center"
+                android:textAllCaps="false"
+                android:background="#009688"
+                android:textColor="#FFFFFF"/>
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/inputL1"
+        android:layout_below="@id/cv1"
         android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="All Data list"
+            android:textColor="#FFFFFF"
+            android:padding="2dp"
+            android:textAlignment="center"
+            android:layout_marginLeft="5dp"
+            android:layout_marginRight="5dp"
+            android:background="@color/colorPrimary"/>
 
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
             android:layout_width="match_parent"
@@ -75,7 +97,6 @@
             <androidx.recyclerview.widget.RecyclerView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_marginTop="10dp"
 
                 android:id="@+id/userRecyclearview">
 

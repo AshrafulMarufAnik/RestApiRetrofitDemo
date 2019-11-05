@@ -48,6 +48,16 @@ public class MainActivity extends AppCompatActivity {
         //getDataFromApi();
         //showDataFromLocalDB();
 
+        boolean activeNetwork = isConnectedToNetwork();
+
+        if(activeNetwork){
+            getDataFromApi();
+        }
+        else {
+            swipeRefreshLayout.setRefreshing(true);
+            showDataFromLocalDB();
+        }
+
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
@@ -161,8 +171,10 @@ public class MainActivity extends AppCompatActivity {
             getDataFromApi();
         }
         else {
+            swipeRefreshLayout.setRefreshing(true);
             showDataFromLocalDB();
         }
+
     }
 
     @Override
