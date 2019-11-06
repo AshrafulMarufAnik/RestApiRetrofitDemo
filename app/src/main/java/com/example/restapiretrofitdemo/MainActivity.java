@@ -23,6 +23,7 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.JsonArray;
@@ -66,12 +67,11 @@ public class MainActivity extends AppCompatActivity {
         requestQueue = Volley.newRequestQueue(this);
         final boolean activeNetwork = isConnectedToNetwork();
 
-        if(activeNetwork){
+        if (activeNetwork) {
             jsonParseUsingVolley();
-        }
-        else {
+        } else {
             swipeRefreshLayout.setRefreshing(true);
-            showDataFromLocalDB();
+            showDataFromLocalDBTable2();
         }
 
         FABtnVolleyParse.setOnClickListener(new View.OnClickListener() {
@@ -93,8 +93,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
-                if(userIdET.getText().toString()!= null && nameET.getText().toString()!= null
-                    && titleET.getText().toString()!= null && bodyET.getText().toString()!= null){
+                if (userIdET.getText().toString() != null && nameET.getText().toString() != null
+                        && titleET.getText().toString() != null && bodyET.getText().toString() != null) {
 
                     String userId = userIdET.getText().toString();
                     String name = nameET.getText().toString();
@@ -102,7 +102,12 @@ public class MainActivity extends AppCompatActivity {
                     String body = bodyET.getText().toString();
                     String status = "Not Synced";
 
-                    storeDataIntoLocalDB(userId,name,title,body,status);
+                    //storeDataIntoLocalDB(userId, name, title, body, status);
+                    try {
+                        postDataUsingVolley(userId, name, title, body, status);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                 }
                 else {
                     Toast.makeText(MainActivity.this, "Fill up all inputs", Toast.LENGTH_SHORT).show();
@@ -116,43 +121,76 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void postDataUsingVolley(String userId, String name, String title, String body, String status) throws JSONException {
+
+        String POST_URL = "http://192.168.11.216:80/api/user/write.php";
+
+        JSONObject jsonBody = new JSONObject();
+        jsonBody.put("userId", userId);
+        jsonBody.put("name", name);
+        jsonBody.put("title", title);
+        jsonBody.put("body", body);
+        jsonBody.put("status", status);
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, POST_URL, jsonBody,
+                new com.android.volley.Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        Toast.makeText(MainActivity.this, "POST: "+response.toString(), Toast.LENGTH_SHORT).show();
+                        Log.d("POST status: ",response.toString());
+
+                    }
+                }, new com.android.volley.Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Toast.makeText(MainActivity.this, "POST Error: "+error.getMessage(), Toast.LENGTH_SHORT).show();
+                error.printStackTrace();
+            }
+        });
+
+        requestQueue.add(jsonObjectRequest);
+
+    }
+
+
     private void jsonParseUsingVolley() {
         users.clear();
-        String BASE_URL = "http://192.168.0.107:80/api/user/read.php";
+        String GET_URL = "http://192.168.11.216:80/api/user/read.php";
 
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, BASE_URL, null, new com.android.volley.Response.Listener<JSONObject>() {
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, GET_URL, null, new com.android.volley.Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
 
-                    try {
-                        JSONArray jsonArray = response.getJSONArray("users");
+                try {
+                    JSONArray jsonArray = response.getJSONArray("users");
 
-                        for(int i=0; i<jsonArray.length();i++){
-                            JSONObject jsonObject = jsonArray.getJSONObject(i);
+                    for (int i = 0; i < jsonArray.length(); i++) {
+                        JSONObject jsonObject = jsonArray.getJSONObject(i);
 
-                            String userId = jsonObject.getString("userId");
-                            String name = jsonObject.getString("name");
-                            String title = jsonObject.getString("title");
-                            String body = jsonObject.getString("body");
-                            String status = jsonObject.getString("status");
+                        String userId = jsonObject.getString("userId");
+                        String name = jsonObject.getString("name");
+                        String title = jsonObject.getString("title");
+                        String body = jsonObject.getString("body");
+                        String status = jsonObject.getString("status");
 
-                            User user = new User(userId,name,title,body,status);
-                            users.add(user);
-                        }
-                        adapter = new UserAdapter(users);
-                        recyclerView.setAdapter(adapter);
-                        adapter.notifyDataSetChanged();
-                        swipeRefreshLayout.setRefreshing(false);
+                        User user = new User(userId, name, title, body, status);
+                        users.add(user);
+                        databaseHelper.insertDataIntoTable2(userId,name,title,body,status);
                     }
-                    catch (JSONException e) {
-                        e.printStackTrace();
-                    }
+                    adapter = new UserAdapter(users);
+                    recyclerView.setAdapter(adapter);
+                    adapter.notifyDataSetChanged();
+                    Toast.makeText(MainActivity.this, "Data parsed from Api", Toast.LENGTH_SHORT).show();
+                    swipeRefreshLayout.setRefreshing(false);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
 
             }
         }, new com.android.volley.Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Toast.makeText(MainActivity.this, "Error: "+error.getMessage(), Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, "Error: " + error.getMessage(), Toast.LENGTH_LONG).show();
                 error.printStackTrace();
             }
         });
@@ -166,29 +204,48 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 boolean activeNetwork = isConnectedToNetwork();
 
-                if(activeNetwork){
+                if (activeNetwork) {
                     //getDataFromApi();
-                }
-                else {
+                } else {
                     //swipeRefreshLayout.setRefreshing(true);
                     //showDataFromLocalDB();
                 }
             }
-        },RETRY_TIMEOUT);
+        }, RETRY_TIMEOUT);
     }
 
     private void showDataFromLocalDB() {
         users.clear();
         Cursor currentCursor = databaseHelper.showDataFromLocalDB();
 
-        while (currentCursor.moveToNext()){
+        while (currentCursor.moveToNext()) {
             String userId = currentCursor.getString(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_userId));
             String name = currentCursor.getString(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_name));
             String title = currentCursor.getString(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_title));
             String body = currentCursor.getString(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_body));
             String status = currentCursor.getString(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_status));
 
-            User currentUser = new User(userId,name,title,body,status);
+            User currentUser = new User(userId, name, title, body, status);
+            users.add(currentUser);
+        }
+        adapter = new UserAdapter(users);
+        recyclerView.setAdapter(adapter);
+        adapter.notifyDataSetChanged();
+        swipeRefreshLayout.setRefreshing(false);
+    }
+
+    private void showDataFromLocalDBTable2() {
+        users.clear();
+        Cursor currentCursor = databaseHelper.showALLDataTable2();
+
+        while (currentCursor.moveToNext()) {
+            String userId = currentCursor.getString(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_userId));
+            String name = currentCursor.getString(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_name));
+            String title = currentCursor.getString(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_title));
+            String body = currentCursor.getString(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_body));
+            String status = currentCursor.getString(currentCursor.getColumnIndex(databaseHelper.TABLE2_COL_status));
+
+            User currentUser = new User(userId, name, title, body, status);
             users.add(currentUser);
         }
         adapter = new UserAdapter(users);
@@ -198,7 +255,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void storeDataIntoLocalDB(String userId, String name, String title, String body, String status) {
-        databaseHelper.insertDataIntoLocalDB(userId,name,title,body,status);
+        databaseHelper.insertDataIntoLocalDB(userId, name, title, body, status);
         Toast.makeText(this, "Data stored", Toast.LENGTH_SHORT).show();
     }
 
@@ -211,33 +268,32 @@ public class MainActivity extends AppCompatActivity {
         call.enqueue(new Callback<List<User>>() {
             @Override
             public void onResponse(Call<List<User>> call, Response<List<User>> response) {
-                if(response.body()!=null){
+                if (response.body() != null) {
                     users = response.body();
 
                     //progressBar.setVisibility(View.GONE);
                     //adapter = new UserAdapter(users);
                     //recyclerView.setAdapter(adapter);
                     Toast.makeText(MainActivity.this, "Data Parsed", Toast.LENGTH_SHORT).show();
-                    Log.d(GET_TAG,"API Get successful");
+                    Log.d(GET_TAG, "API Get successful");
 
                     int listSize = users.size();
-                    for(int i=0;i<listSize;i++){
+                    for (int i = 0; i < listSize; i++) {
                         User currentUser = users.get(i);
-                        databaseHelper.insertDataIntoTable2(currentUser.getUserId(),currentUser.getName(),currentUser.getTitle(),currentUser.getBody(),currentUser.getStatus());
+                        databaseHelper.insertDataIntoTable2(currentUser.getUserId(), currentUser.getName(), currentUser.getTitle(), currentUser.getBody(), currentUser.getStatus());
 
                     }
-                }
-                else {
+                } else {
                     Toast.makeText(MainActivity.this, "Data not parsed", Toast.LENGTH_LONG).show();
-                    Log.d(GET_TAG,"API GET not successful");
+                    Log.d(GET_TAG, "API GET not successful");
                 }
 
             }
 
             @Override
             public void onFailure(Call<List<User>> call, Throwable t) {
-                Toast.makeText(MainActivity.this, ""+t.getMessage(), Toast.LENGTH_SHORT).show();
-                Log.d(GET_TAG,t.getMessage());
+                Toast.makeText(MainActivity.this, "" + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Log.d(GET_TAG, t.getMessage());
             }
         });
     }
@@ -247,9 +303,9 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
 
         IntentFilter intentFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
-        registerReceiver(networkCheck,intentFilter);
+        registerReceiver(networkCheck, intentFilter);
 
-        Intent intent = new Intent(MainActivity.this,AppService.class);
+        Intent intent = new Intent(MainActivity.this, AppService.class);
         startService(intent);
     }
 
@@ -264,7 +320,7 @@ public class MainActivity extends AppCompatActivity {
 
         unregisterReceiver(networkCheck);
 
-        Intent intent = new Intent(MainActivity.this,AppService.class);
+        Intent intent = new Intent(MainActivity.this, AppService.class);
         stopService(intent);
     }
 
@@ -282,14 +338,14 @@ public class MainActivity extends AppCompatActivity {
         users = new ArrayList<>();
     }
 
-    private boolean isConnectedToNetwork(){
+    private boolean isConnectedToNetwork() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 
         return connectivityManager.getActiveNetworkInfo() != null;
     }
 
     public void secondActivity(View view) {
-        Intent intent = new Intent(MainActivity.this,SecondActivity.class);
+        Intent intent = new Intent(MainActivity.this, SecondActivity.class);
         startActivity(intent);
     }
 }
