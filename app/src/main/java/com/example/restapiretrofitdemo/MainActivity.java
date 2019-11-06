@@ -102,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
                     String body = bodyET.getText().toString();
                     String status = "Not Synced";
 
-                    //storeDataIntoLocalDB(userId, name, title, body, status);
+                    storeDataIntoLocalDB(userId, name, title, body, status);
                     try {
                         postDataUsingVolley(userId, name, title, body, status);
                     } catch (JSONException e) {
@@ -177,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
                         users.add(user);
                         databaseHelper.insertDataIntoTable2(userId,name,title,body,status);
                     }
-                    adapter = new UserAdapter(users);
+                    adapter = new UserAdapter(users,MainActivity.this);
                     recyclerView.setAdapter(adapter);
                     adapter.notifyDataSetChanged();
                     Toast.makeText(MainActivity.this, "Data parsed from Api", Toast.LENGTH_SHORT).show();
@@ -228,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
             User currentUser = new User(userId, name, title, body, status);
             users.add(currentUser);
         }
-        adapter = new UserAdapter(users);
+        adapter = new UserAdapter(users,this);
         recyclerView.setAdapter(adapter);
         adapter.notifyDataSetChanged();
         swipeRefreshLayout.setRefreshing(false);
@@ -248,7 +248,7 @@ public class MainActivity extends AppCompatActivity {
             User currentUser = new User(userId, name, title, body, status);
             users.add(currentUser);
         }
-        adapter = new UserAdapter(users);
+        adapter = new UserAdapter(users,this);
         recyclerView.setAdapter(adapter);
         adapter.notifyDataSetChanged();
         swipeRefreshLayout.setRefreshing(false);
